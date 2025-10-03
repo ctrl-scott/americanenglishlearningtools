@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Public-Domain Writing Reviewer (Plain Language + Strunk 1918)</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #0f172a;
+    --muted: #475569;
+    --card: #f8fafc;
+    --accent: #0ea5e9;
+    --good: #16a34a;
+    --warn: #ca8a04;
+    --bad: #dc2626;
+    --code: #0b1020;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  header {
+    padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #fff;
+    position: sticky; top: 0; z-index: 2;
+  }
+  header h1 { margin: 0; font-size: 1.15rem; }
+  main { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; padding: 1rem; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--card); border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+  }
+  .panel header {
+    background: #eef6ff; border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1rem;
+  }
+  .panel header h2 { margin: 0; font-size: 0.95rem; }
+  .panel .content { padding: 1rem; }
+  textarea {
+    width: 100%; min-height: 320px; resize: vertical; box-sizing: border-box;
+    border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.75rem; font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    background: #fff;
+  }
+  .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.75rem; }
+  .toolbar select, .toolbar button, .toolbar input[type="checkbox"] + label {
+    font-size: 0.92rem;
+  }
+  button {
+    border: 1px solid #cbd5e1; background: #fff; padding: 0.5rem 0.7rem; border-radius: 8px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.8rem; color: var(--muted); }
+  .score {
+    display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; font-size: 0.95rem;
+    padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff;
+  }
+  .score.good { color: var(--good); border-color: #bbf7d0; background: #f0fdf4; }
+  .score.warn { color: var(--warn); border-color: #fde68a; background: #fffbeb; }
+  .score.bad { color: var(--bad); border-color: #fecaca; background: #fef2f2; }
+  .findings { display: grid; gap: 0.5rem; }
+  .finding {
+    border: 1px solid #e5e7eb; background: #fff; border-radius: 10px; padding: 0.75rem;
+  }
+  .finding h3 { margin: 0 0 0.35rem 0; font-size: 0.95rem; }
+  .finding .why { color: var(--muted); font-size: 0.9rem; }
+  .finding .loc { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+  .finding .actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .legend { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.25rem;}
+  .pill { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: #eef2ff; color: #3730a3; }
+  .muted { color: var(--muted); }
+  .foot { padding: 0.75rem 1rem; border-top: 1px solid #e5e7eb; background: #fff; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .sources { font-size: 0.85rem; color: var(--muted); }
+  details.rules { margin-top: 0.75rem; }
+  pre.code {
+    background: #0b1020; color: #e2e8f0; padding: 0.75rem; border-radius: 10px; overflow: auto; font-size: 0.85rem;
+  }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; padding: 0.05rem 0.35rem; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 6px; background: #fff; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Public-Domain Writing Reviewer · Plain Language + Strunk (1918)</h1>
+    <div class="muted" aria-live="polite">Demo: load standards → analyze → see findings → apply safe fixes.</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <header><h2>1) Your Text</h2></header>
+      <div class="content">
+        <div class="toolbar" role="group" aria-label="Text tools">
+          <button id="btnPaste">Paste</button>
+          <button id="btnSample">Load Sample</button>
+          <button id="btnClear">Clear</button>
+          <span class="badge">Words: <span id="wordCount">0</span></span>
+          <span class="badge">Sentences: <span id="sentCount">0</span></span>
+          <span class="badge">Chars: <span id="charCount">0</span></span>
+        </div>
+        <label for="inputText" class="sr-only">Input text</label>
+        <textarea id="inputText" placeholder="Paste or type text here…"></textarea>
+
+        <details class="rules">
+          <summary><strong>What standards are applied?</strong></summary>
+          <p>This demo bundles concise, public-domain guidance:</p>
+          <ul>
+            <li><strong>Federal Plain Language Guidelines</strong> (U.S. Government work; public domain). Emphasis on plain words, reader focus, active voice, short sentences, logical organization, and informative headings.</li>
+            <li><strong>William Strunk Jr., The Elements of Style (1918 edition)</strong> (public domain). Selected rules: omit needless words, active voice preference, parallelism, keep related words together, and clarity of pronoun reference.</li>
+          </ul>
+          <p>You can toggle specific “packs” below.</p>
+        </details>
+
+        <div class="toolbar" style="margin-top: .75rem">
+          <label for="packSelect"><strong>Standards pack:</strong></label>
+          <select id="packSelect" aria-label="Standards pack">
+            <option value="plain">Plain Language (US Gov)</option>
+            <option value="strunk">Strunk (1918) – Selected</option>
+            <option value="both" selected>Both</option>
+          </select>
+          <span class="badge">Checks: <span id="checkCount">0</span></span>
+          <button id="btnAnalyze" class="primary">Analyze</button>
+          <button id="btnAutoFix" title="Apply safe automated fixes only">Apply Auto-Fixes</button>
+          <button id="btnExport">Export Report (JSON)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>2) Findings & Scores</h2></header>
+      <div class="content">
+        <div class="legend">
+          <span class="score good" title="Lower grades are easier to read">Readability OK</span>
+          <span class="score warn">Needs Simplification</span>
+          <span class="score bad">Hard to Read</span>
+          <span class="pill">Passive?</span>
+          <span class="pill">Weasel</span>
+          <span class="pill">Wordy</span>
+          <span class="pill">Long Sentence</span>
+          <span class="pill">Nominalization</span>
+          <span class="pill">Cliché</span>
+        </div>
+        <div id="scores" style="margin: .75rem 0"></div>
+        <div id="findings" class="findings" aria-live="polite"></div>
+      </div>
+      <div class="foot">
+        <div class="sources">
+          Sources: Federal Plain Language Guidelines (public domain). Strunk, W. (1918), <em>The Elements of Style</em> (public domain).
+        </div>
+        <div class="muted">Tip: Press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to analyze.</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+/*
+  Public-domain standards packs (compact summaries and rule hooks).
+  Notes:
+    - Federal Plain Language Guidelines: US Government works are public domain.
+    - Strunk 1918 edition is public domain. Later editions with E. B. White are NOT.
+*/
+const STANDARDS_PACKS = {
+  plain: {
+    name: "Federal Plain Language",
+    rules: {
+      preferPlainWords: true,
+      avoidWeasel: true,
+      favorActiveVoice: true,
+      keepSentencesShort: true,
+      avoidNominalizations: true
+    }
+  },
+  strunk: {
+    name: "Strunk 1918 (Selected)",
+    rules: {
+      omitNeedlessWords: true,
+      activeVoicePreferred: true,
+      parallelismCue: true,
+      keepRelatedWordsTogetherCue: true
+    }
+  },
+  both: {
+    name: "Plain + Strunk",
+    rules: {
+      preferPlainWords: true,
+      avoidWeasel: true,
+      favorActiveVoice: true,
+      keepSentencesShort: true,
+      avoidNominalizations: true,
+      omitNeedlessWords: true,
+      activeVoicePreferred: true,
+      parallelismCue: true,
+      keepRelatedWordsTogetherCue: true
+    }
+  }
+};
+
+// Small, educational lexicons (kept modest for demo purposes)
+const WEASEL_WORDS = [
+  "generally","often","many","various","several","virtually","basically","somewhat","fairly",
+  "significantly","relatively","remarkably","commonly","frequently","numerous","potentially"
+];
+const WORDY_PHRASES = [
+  ["at this point in time","now"],
+  ["due to the fact that","because"],
+  ["in order to","to"],
+  ["with regard to","about"],
+  ["in the event that","if"],
+  ["make an effort to","try"],
+  ["has the ability to","can"],
+  ["a large number of","many"],
+  ["in the near future","soon"]
+];
+const CLICHES = [
+  "at the end of the day","paradigm shift","low-hanging fruit","think outside the box",
+  "move the needle","circle back","leverage synergies"
+];
+const NOMINALIZATION_SUFFIXES = ["tion","sion","ment","ance","ence","ing"]; // rough heuristic
+const PLAIN_WORD_SUGGESTIONS = [
+  ["utilize","use"],["demonstrate","show"],["commence","begin"],["terminate","end"],["assistance","help"],
+  ["approximately","about"],["subsequent","next"],["modification","change"],["obtain","get"],["indicate","show"]
+];
+
+// Utilities
+const el = (sel) => document.querySelector(sel);
+const bySentences = (text) => text
+  .replace(/([.?!])(\s+)(?=[A-Z])/g, "$1|")
+  .split("|")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const words = (s) => s.trim().split(/\s+/).filter(Boolean);
+
+function counts(text) {
+  const w = words(text).length;
+  const sents = bySentences(text);
+  return {
+    chars: text.length,
+    words: w,
+    sentences: sents.length,
+    avgWordsPerSentence: sents.length ? (w / sents.length) : 0
+  };
+}
+
+// Flesch Reading Ease and Flesch-Kincaid Grade (quick syllable heuristic)
+function syllables(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g,"");
+  if (!w) return 0;
+  if (w.length <= 3) return 1;
+  const sub = w
+    .replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'')
+    .replace(/^y/,'');
+  const matches = sub.match(/[aeiouy]{1,2}/g);
+  return matches ? matches.length : 1;
+}
+function readability(text) {
+  const sents = bySentences(text);
+  const wds = words(text);
+  const wordCount = wds.length || 1;
+  const sentCount = sents.length || 1;
+  const syllCount = wds.reduce((a,w)=>a+syllables(w),0) || 1;
+
+  const RE = 206.835 - 1.015*(wordCount/sentCount) - 84.6*(syllCount/wordCount);
+  const FK = 0.39*(wordCount/sentCount) + 11.8*(syllCount/wordCount) - 15.59;
+  return { fleschEase: Math.max(Math.min(RE, 100), -50), fkGrade: Math.max(FK, 0) };
+}
+
+// Passive voice heuristic: "be" verb + past participle (very rough)
+const BE_FORMS = ["am","is","are","was","were","be","been","being"];
+function findPassive(sentence) {
+  const tokens = sentence.split(/\s+/);
+  for (let i=0;i<tokens.length-1;i++) {
+    const a = tokens[i].toLowerCase().replace(/[^a-z']/g,"");
+    const b = tokens[i+1].toLowerCase().replace(/[^a-z']/g,"");
+    if (BE_FORMS.includes(a) && /\b\w+ed\b/.test(b)) {
+      return { idx: i, match: tokens.slice(i, i+2).join(" ") };
+    }
+  }
+  return null;
+}
+
+function highlight(text, start, end) {
+  const before = text.slice(0, start);
+  const mid = text.slice(start, end);
+  const after = text.slice(end);
+  return before + "<mark>" + mid + "</mark>" + after;
+}
+
+// Analyzers
+function analyze(text, packKey) {
+  const pack = STANDARDS_PACKS[packKey] || STANDARDS_PACKS.both;
+  const cs = counts(text);
+  const rd = readability(text);
+  const findings = [];
+
+  // 1) Long sentences (Plain Language)
+  if (pack.rules.keepSentencesShort) {
+    const sents = bySentences(text);
+    sents.forEach((s, idx) => {
+      const wc = words(s).length;
+      if (wc > 25) {
+        findings.push({
+          type: "Long Sentence",
+          severity: "warn",
+          where: `Sentence ${idx+1} (${wc} words)`,
+          why: "Plain Language prioritizes short sentences for clarity.",
+          excerpt: s
+        });
+      }
+    });
+  }
+
+  // 2) Passive voice
+  if (pack.rules.favorActiveVoice || pack.rules.activeVoicePreferred) {
+    const sents = bySentences(text);
+    sents.forEach((s, idx) => {
+      const p = findPassive(s);
+      if (p) {
+        findings.push({
+          type: "Passive",
+          severity: "warn",
+          where: `Sentence ${idx+1}`,
+          why: "Active voice is typically clearer and more direct.",
+          excerpt: s,
+          hint: `Consider revising near: “… ${p.match} …”`
+        });
+      }
+    });
+  }
+
+  // 3) Weasel words
+  if (pack.rules.avoidWeasel) {
+    const regex = new RegExp("\\b(" + WEASEL_WORDS.join("|") + ")\\b","gi");
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      findings.push({
+        type: "Weasel",
+        severity: "warn",
+        where: `Char ${m.index}–${m.index+m[0].length}`,
+        why: "Vague qualifiers can reduce precision.",
+        excerpt: text.slice(Math.max(0, m.index-30), Math.min(text.length, m.index+30)),
+        replacement: null
+      });
+    }
+  }
+
+  // 4) Wordy phrases (Plain + Strunk: omit needless words)
+  if (pack.rules.preferPlainWords || pack.rules.omitNeedlessWords) {
+    WORDY_PHRASES.forEach(([bad, good]) => {
+      const re = new RegExp("\\b" + bad.replace(/\s+/g,"\\s+") + "\\b","gi");
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        findings.push({
+          type: "Wordy",
+          severity: "warn",
+          where: `Char ${m.index}–${m.index+m[0].length}`,
+          why: "Omit needless words to improve clarity.",
+          excerpt: text.slice(Math.max(0, m.index-30), Math.min(text.length, m.index+m[0].length+30)),
+          replacement: good
+        });
+      }
+    });
+  }
+
+  // 5) Plain word suggestions
+  if (pack.rules.preferPlainWords) {
+    PLAIN_WORD_SUGGESTIONS.forEach(([bad, good]) => {
+      const re = new RegExp("\\b" + bad + "\\b","gi");
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        findings.push({
+          type: "Plain Word",
+          severity: "warn",
+          where: `Char ${m.index}–${m.index+m[0].length}`,
+          why: "Prefer common, familiar words.",
+          excerpt: text.slice(Math.max(0, m.index-30), Math.min(text.length, m.index+m[0].length+30)),
+          replacement: good
+        });
+      }
+    });
+  }
+
+  // 6) Nominalizations (heuristic)
+  if (pack.rules.avoidNominalizations || pack.rules.omitNeedlessWords) {
+    const re = new RegExp("\\b([A-Za-z]{4,})(" + NOMINALIZATION_SUFFIXES.join("|") + ")\\b","g");
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      findings.push({
+        type: "Nominalization",
+        severity: "warn",
+        where: `Char ${m.index}–${m.index+m[0].length}`,
+        why: "Nouns derived from verbs can obscure actors and actions. Consider a strong verb.",
+        excerpt: text.slice(Math.max(0, m.index-30), Math.min(text.length, m.index+m[0].length+30))
+      });
+    }
+  }
+
+  // 7) Clichés
+  CLICHES.forEach(c => {
+    const re = new RegExp("\\b" + c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b","gi");
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      findings.push({
+        type: "Cliché",
+        severity: "warn",
+        where: `Char ${m.index}–${m.index+m[0].length}`,
+        why: "Overused expressions reduce freshness and credibility.",
+        excerpt: text.slice(Math.max(0, m.index-30), Math.min(text.length, m.index+m[0].length+30))
+      });
+    }
+  });
+
+  // 8) Double spaces
+  {
+    const re = / {2,}/g; let m;
+    while ((m = re.exec(text)) !== null) {
+      findings.push({
+        type: "Spacing",
+        severity: "good",
+        where: `Char ${m.index}–${m.index+m[0].length}`,
+        why: "Multiple spaces can be normalized.",
+        excerpt: text.slice(Math.max(0, m.index-10), Math.min(text.length, m.index+m[0].length+10)),
+        replacement: " ",
+        autofix: "collapse-spaces"
+      });
+    }
+  }
+
+  // 9) Straight quotes → smart quotes (optional quality polish)
+  {
+    const guess = /(^|[\s(\[])"([^"]+)"([\s)\].,;:!?]|$)/g;
+    let m;
+    while ((m = guess.exec(text)) !== null) {
+      findings.push({
+        type: "Quotes",
+        severity: "good",
+        where: `Char ${m.index}–${m.index+m[0].length}`,
+        why: "Typographic quotes can improve readability in prose contexts.",
+        excerpt: text.slice(Math.max(0, m.index-15), Math.min(text.length, m.index+m[0].length+15)),
+        autofix: "smart-quotes"
+      });
+    }
+  }
+
+  // Scores
+  let scoreBadge = "good";
+  if (rd.fkGrade >= 12) scoreBadge = "bad";
+  else if (rd.fkGrade >= 9) scoreBadge = "warn";
+
+  return {
+    counts: cs,
+    readability: rd,
+    scoreBadge,
+    findings
+  };
+}
+
+// Auto-fixes: conservative
+function applyAutoFixes(text) {
+  // 1) Collapse multiple spaces
+  text = text.replace(/ {2,}/g, " ");
+  // 2) Smart quotes (very basic)
+  text = text
+    .replace(/(^|[\s(\[])"([^"]+)"(?=[\s)\].,;:!?]|$)/g, '$1“$2”')
+    .replace(/(^|[\s(\[])'([^']+)'(?=[\s)\].,;:!?]|$)/g, '$1‘$2’');
+  // 3) Common wordy phrases
+  WORDY_PHRASES.forEach(([bad, good]) => {
+    const re = new RegExp("\\b" + bad.replace(/\s+/g,"\\s+") + "\\b","gi");
+    text = text.replace(re, good);
+  });
+  return text;
+}
+
+// UI Glue
+function renderCounts(cs) {
+  el("#wordCount").textContent = cs.words;
+  el("#sentCount").textContent = cs.sentences;
+  el("#charCount").textContent = cs.chars;
+}
+
+function renderScores(r) {
+  const { readability: rd, scoreBadge } = r;
+  const scoreEl = document.createElement("div");
+  const cls = scoreBadge === "good" ? "good" : scoreBadge === "warn" ? "warn" : "bad";
+  scoreEl.innerHTML = `
+    <span class="score ${cls}" title="Flesch-Kincaid Grade Level">${rd.fkGrade.toFixed(1)} FK Grade</span>
+    <span class="badge" title="Flesch Reading Ease (higher is easier)">Flesch Ease: ${rd.fleschEase.toFixed(0)}</span>
+    <span class="badge">Avg words/sentence: ${((r.counts.words/(r.counts.sentences||1))).toFixed(1)}</span>
+  `;
+  el("#scores").innerHTML = "";
+  el("#scores").appendChild(scoreEl);
+}
+
+function renderFindings(r) {
+  const box = el("#findings");
+  box.innerHTML = "";
+  el("#checkCount").textContent = r.findings.length;
+
+  if (!r.findings.length) {
+    const ok = document.createElement("div");
+    ok.className = "finding";
+    ok.innerHTML = `<h3>Looks clean</h3><div class="why">No issues found under selected standards. Consider running both packs for broader coverage.</div>`;
+    box.appendChild(ok);
+    return;
+  }
+
+  r.findings.forEach((f, i) => {
+    const div = document.createElement("div");
+    div.className = "finding";
+    div.innerHTML = `
+      <h3>${i+1}. ${f.type} <span class="pill" style="margin-left:.25rem">${f.severity}</span></h3>
+      <div class="why">${f.why || ""}</div>
+      <div class="loc">${f.where || ""}</div>
+      <pre class="code">${escapeHtml(f.excerpt || "")}</pre>
+      <div class="actions"></div>
+    `;
+    const actions = div.querySelector(".actions");
+    if (f.replacement) {
+      const btn = document.createElement("button");
+      btn.textContent = `Replace with “${f.replacement}”`;
+      btn.addEventListener("click", () => {
+        const t = el("#inputText").value;
+        // Simple local replace in the shown excerpt range; for demo apply global phrase replace.
+        el("#inputText").value = t.replace(new RegExp("\\b"+escapeRegExp(f.excerpt?.trim()||"" )+"\\b","g"), f.replacement);
+        triggerAnalyze();
+      });
+      actions.appendChild(btn);
+    }
+    if (f.autofix === "collapse-spaces") {
+      const btn = document.createElement("button");
+      btn.textContent = "Collapse multiple spaces";
+      btn.addEventListener("click", () => {
+        el("#inputText").value = el("#inputText").value.replace(/ {2,}/g," ");
+        triggerAnalyze();
+      });
+      actions.appendChild(btn);
+    }
+    if (f.autofix === "smart-quotes") {
+      const btn = document.createElement("button");
+      btn.textContent = "Convert to “smart quotes”";
+      btn.addEventListener("click", () => {
+        el("#inputText").value = el("#inputText").value
+          .replace(/(^|[\s(\[])"([^"]+)"(?=[\s)\].,;:!?]|$)/g, '$1“$2”')
+          .replace(/(^|[\s(\[])'([^']+)'(?=[\s)\].,;:!?]|$)/g, '$1‘$2’');
+        triggerAnalyze();
+      });
+      actions.appendChild(btn);
+    }
+    box.appendChild(div);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Handlers
+function triggerAnalyze() {
+  const text = el("#inputText").value;
+  const pack = el("#packSelect").value;
+  const result = analyze(text, pack);
+  renderCounts(result.counts);
+  renderScores(result);
+  renderFindings(result);
+}
+
+el("#btnAnalyze").addEventListener("click", triggerAnalyze);
+el("#inputText").addEventListener("input", () => renderCounts(counts(el("#inputText").value)));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) triggerAnalyze();
+});
+
+el("#btnAutoFix").addEventListener("click", () => {
+  const text = el("#inputText").value;
+  el("#inputText").value = applyAutoFixes(text);
+  triggerAnalyze();
+});
+
+el("#btnPaste").addEventListener("click", async () => {
+  try {
+    const t = await navigator.clipboard.readText();
+    if (t) {
+      el("#inputText").value = t;
+      triggerAnalyze();
+    } else {
+      alert("Clipboard is empty.");
+    }
+  } catch {
+    alert("Clipboard permission was denied by the browser.");
+  }
+});
+
+el("#btnSample").addEventListener("click", () => {
+  const sample = `At this point in time, it is generally understood that the report was finalized by the team. A large number of considerations were made in order to demonstrate progress. Many users indicated issues with regard to navigation. In the event that problems persist, action will be taken.`;
+  el("#inputText").value = sample;
+  triggerAnalyze();
+});
+
+el("#btnClear").addEventListener("click", () => {
+  el("#inputText").value = "";
+  triggerAnalyze();
+});
+
+el("#btnExport").addEventListener("click", () => {
+  const text = el("#inputText").value;
+  const pack = el("#packSelect").value;
+  const result = analyze(text, pack);
+  const payload = {
+    generated_at: new Date().toISOString(),
+    standards_pack: STANDARDS_PACKS[pack].name,
+    counts: result.counts,
+    readability: result.readability,
+    findings: result.findings
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "writing_report.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Initialize
+triggerAnalyze();
+</script>
+</body>
+<!-- Here are APA-style citations for the standards and measures used in the demo page:
+
+* Flesch, R. (1948). A new readability yardstick. *Journal of Applied Psychology, 32*(3), 221–233. [https://doi.org/10.1037/h0057532](https://doi.org/10.1037/h0057532)
+
+* Kincaid, J. P., Fishburne, R. P., Jr., Rogers, R. L., & Chissom, B. S. (1975). *Derivation of new readability formulas (Automated Readability Index, Fog Count and Flesch Reading Ease Formula) for Navy enlisted personnel* (Research Branch Report 8-75). Naval Technical Training, U.S. Naval Air Station Memphis.
+
+* Plain Language Action and Information Network. (2011). *Federal Plain Language Guidelines*. U.S. General Services Administration. (U.S. government work; public domain.) [https://www.plainlanguage.gov/guidelines/](https://www.plainlanguage.gov/guidelines/)
+
+* Strunk, W. (1918). *The elements of style*. Ithaca, NY: Privately printed. (1918 edition is in the public domain in the United States.)
+
+* United States Code. (n.d.). 17 U.S.C. § 105 — Subject matter of copyright: United States Government works. (Confirms that U.S. government works are in the public domain.) [https://uscode.house.gov/](https://uscode.house.gov/)
+
+
+Here are APA-style citations you can pair with the page:
+
+* Flesch, R. (1948). A new readability yardstick. *Journal of Applied Psychology, 32*(3), 221–233. [https://doi.org/10.1037/h0057532](https://doi.org/10.1037/h0057532)
+* Kincaid, J. P., Fishburne, R. P., Jr., Rogers, R. L., & Chissom, B. S. (1975). *Derivation of new readability formulas (Automated Readability Index, Fog Count and Flesch Reading Ease Formula) for Navy enlisted personnel* (Research Branch Report 8-75). Naval Technical Training, U.S. Naval Air Station Memphis.
+* Plain Language Action and Information Network. (2011). *Federal Plain Language Guidelines*. U.S. General Services Administration. [https://www.plainlanguage.gov/guidelines/](https://www.plainlanguage.gov/guidelines/)  *(U.S. government work; public domain)*
+* Strunk, W. (1918). *The elements of style*. Ithaca, NY: Privately printed. *(1918 edition is in the public domain in the United States)*
+* United States Code. (n.d.). 17 U.S.C. § 105: Subject matter of copyright—United States Government works. [https://uscode.house.gov/](https://uscode.house.gov/)
+-->
+</html>
